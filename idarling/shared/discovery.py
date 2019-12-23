@@ -88,11 +88,13 @@ class ClientsDiscovery(QObject):
             try:
                 self._socket.setblocking(0)
                 sent = self._socket.sendto(
-                    request, 0, ("<broadcast>", 31013)
+                    request, socket.MSG_DONTWAIT, ("<broadcast>", 31013)
                 )
                 request = request[sent:]
             except socket.error as e:
-                self._logger.warning("Couldn't send discovery request: {}".format(e))
+                self._logger.warning(
+                    "Couldn't send discovery request: {}".format(e)
+                )
                 # Force return, otherwise the while loop will halt IDA
                 # This is a temporary fix, and it's gonna yield the above
                 # warning every every n seconds..
