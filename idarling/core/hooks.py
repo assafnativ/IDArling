@@ -34,7 +34,7 @@ if fDebug:
 import sys
 sys.setrecursionlimit(10000)
 
-from . import events as evt # noqa: I100, I202
+from . import events as evt  # noqa: I100, I202
 from .events import Event  # noqa: I201
 from ..shared.local_types import ParseTypeString, ImportLocalType
 
