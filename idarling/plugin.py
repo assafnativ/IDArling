@@ -27,7 +27,8 @@ from .network.network import Network
 from .shared.utils import start_logging
 
 
-
+if sys.version_info > (3,):
+    unicode = str
 
 class Plugin(ida_idaapi.plugin_t):
     """
