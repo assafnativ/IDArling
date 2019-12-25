@@ -306,6 +306,8 @@ class Core(Module):
             node.hashset_buf("snapshot", str(self._snapshot))
         # We need the test to be non-zero as we need to reset and save tick=0 
         # when saving an IDB to a new snapshot
+        if self._database:
+            node.hashset_buf("database", str(self._database))
         if self._tick != -1:
             node.hashset_buf("tick", str(self._tick))
 
@@ -350,6 +352,7 @@ class Core(Module):
             d = self._plugin.network.send_packet(
                 ListSnapshots.Query(self._project, self._binary)
             )
+            print("from if join", d)
             if d:
                 d.add_callback(snapshots_listed)
                 d.add_errback(self._plugin.logger.exception)
