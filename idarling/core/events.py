@@ -29,7 +29,6 @@ import ida_segment
 import ida_segregs
 import ida_typeinf
 import ida_ua
-import ida_idc
 import ida_offset
 import idc
 
