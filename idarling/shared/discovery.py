@@ -88,7 +88,7 @@ class ClientsDiscovery(QObject):
             try:
                 self._socket.setblocking(0)
                 sent = self._socket.sendto(
-                    request, socket.MSG_DONTWAIT, ("<broadcast>", 31013)
+                    request, 0, ("<broadcast>", 31013)
                 )
                 request = request[sent:]
             except socket.error as e:
