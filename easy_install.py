@@ -12,7 +12,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 import os
 import shutil
-import urllib2
+from urllib.request import urlopen
 import zipfile
 
 import ida_diskio
@@ -34,7 +34,7 @@ archive_path = os.path.join(plug_dir, "master.zip")
 if os.path.exists(archive_path):
     os.remove(archive_path)
 with open(archive_path, "wb") as f:
-    f.write(urllib2.urlopen(URL).read())
+    f.write(urlopen(URL).read())
 
 print("[*] Unzipping master.zip archive...")
 archive_dir = os.path.join(plug_dir, "IDArling-master")
