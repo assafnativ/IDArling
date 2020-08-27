@@ -40,10 +40,11 @@ class EventFilter(QObject):
         super(EventFilter, self).__init__(parent)
         self._plugin = plugin
         self._intercept = False
+        self._label = None
 
     def install(self):
         self._plugin.logger.debug("Installing the event filter")
-        qApp.instance().installEventFilter(self)
+        # qApp.instance().installEventFilter(self)
 
     def uninstall(self):
         self._plugin.logger.debug("Uninstalling the event filter")
