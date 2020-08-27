@@ -71,7 +71,7 @@ class Event(DefaultEvent):
     @staticmethod
     def decode(s):
         """Decodes UTF-8 bytes into a unicode string."""
-        if isinstance(s, unicode):
+        if not isinstance(s, bytes):
             return s
         elif isinstance(s, bytes):
             return s.decode("utf-8")
@@ -128,9 +128,12 @@ class RenamedEvent(Event):
 
     def __call__(self):
         flags = ida_name.SN_LOCAL if self.local_name else 0
-        ida_name.set_name(
-            self.ea, self.new_name, flags | ida_name.SN_NOWARN
-        )
+        try:
+            ida_name.set_name(
+                self.ea, (self.new_name), flags | ida_name.SN_NOWARN
+            )
+        except:
+            raise Exception(repr((self.ea, (self.new_name), flags | ida_name.SN_NOWARN)))
         ida_kernwin.request_refresh(ida_kernwin.IWID_DISASMS)
         ida_kernwin.request_refresh(ida_kernwin.IWID_STRUCTS)
         ida_kernwin.request_refresh(ida_kernwin.IWID_STKVIEW)
@@ -234,7 +237,7 @@ class CmtChangedEvent(Event):
         self.rptble = rptble
 
     def __call__(self):
-        ida_bytes.set_cmt(self.ea, self.comment, self.rptble)
+        ida_bytes.set_cmt(self.ea, (self.comment), self.rptble)
 
 
 class RangeCmtChangedEvent(Event):
@@ -249,7 +252,7 @@ class RangeCmtChangedEvent(Event):
         self.rptble = rptble
 
     def __call__(self):
-        cmt = self.cmt
+        cmt = (self.cmt)
         if self.kind == ida_range.RANGE_KIND_FUNC:
             func = ida_funcs.get_func(self.start_ea)
             ida_funcs.set_func_cmt(func, cmt, self.rptble)
@@ -274,7 +277,7 @@ class ExtraCmtChangedEvent(Event):
         isprev = 1 if self.line_idx - 1000 < 1000 else 0
         if not self.cmt:
             return 0
-        ida_lines.add_extra_cmt(self.ea, isprev, self.cmt)
+        ida_lines.add_extra_cmt(self.ea, isprev, (self.cmt))
 
 
 class TiChangedEvent(Event):
@@ -297,13 +300,16 @@ class TiChangedEvent(Event):
                 r = ida_struct.get_member_by_fullname(self.name)
                 if r:
                     self.ea = r[0].id
-            ida_typeinf.apply_type(
-                None,
-                GetTypeString(py_type[0]),
-                py_type[1],
-                self.ea,
-                ida_typeinf.TINFO_DEFINITE,
-            )
+            try:
+                ida_typeinf.apply_type(
+                    None,
+                    py_type[0],  # DefaultEvent(type=event, event_type=ti_changed, ea=4278195233, py_type=['\x1b\x052', ''])
+                    py_type[1],
+                    self.ea,
+                    ida_typeinf.TINFO_DEFINITE,
+                )
+            except:
+                raise Exception(repr(py_type))
 
 
 class LocalTypesChangedEvent(Event):
@@ -403,7 +409,7 @@ class OpTypeChangedEvent(Event):
         if self.op == "offset":
             ida_offset.op_plain_offset(self.ea, self.n, 0)
         if self.op == "enum":
-            id = ida_enum.get_enum(self.extra["ename"])
+            id = ida_enum.get_enum((self.extra["ename"]))
             ida_bytes.op_enum(self.ea, self.n, id, self.extra["serial"])
         if self.op == "struct":
             path_len = len(self.extra["spath"])
@@ -432,7 +438,7 @@ class EnumCreatedEvent(Event):
         self.name = name
 
     def __call__(self):
-        ida_enum.add_enum(self.enum, self.name, 0)
+        ida_enum.add_enum(self.enum, (self.name), 0)
 
 
 class EnumDeletedEvent(Event):
@@ -443,7 +449,7 @@ class EnumDeletedEvent(Event):
         self.ename = ename
 
     def __call__(self):
-        ida_enum.del_enum(ida_enum.get_enum(self.ename))
+        ida_enum.del_enum(ida_enum.get_enum((self.ename)))
 
 
 class EnumRenamedEvent(Event):
@@ -457,11 +463,11 @@ class EnumRenamedEvent(Event):
 
     def __call__(self):
         if self.is_enum:
-            enum = ida_enum.get_enum(self.oldname)
-            ida_enum.set_enum_name(enum, self.newname)
+            enum = ida_enum.get_enum((self.oldname))
+            ida_enum.set_enum_name(enum, (self.newname))
         else:
-            emem = ida_enum.get_enum_member_by_name(self.oldname)
-            ida_enum.set_enum_member_name(emem, self.newname)
+            emem = ida_enum.get_enum_member_by_name((self.oldname))
+            ida_enum.set_enum_member_name(emem, (self.newname))
 
 
 class EnumBfChangedEvent(Event):
@@ -473,7 +479,7 @@ class EnumBfChangedEvent(Event):
         self.bf_flag = bf_flag
 
     def __call__(self):
-        enum = ida_enum.get_enum(self.ename)
+        enum = ida_enum.get_enum((self.ename))
         ida_enum.set_enum_bf(enum, self.bf_flag)
 
 
@@ -487,8 +493,8 @@ class EnumCmtChangedEvent(Event):
         self.repeatable_cmt = repeatable_cmt
 
     def __call__(self):
-        emem = ida_enum.get_enum_member_by_name(self.emname)
-        cmt = self.cmt if self.cmt else ""
+        emem = ida_enum.get_enum_member_by_name((self.emname))
+        cmt = (self.cmt if self.cmt else "")
         ida_enum.set_enum_cmt(emem, cmt, self.repeatable_cmt)
 
 
@@ -503,9 +509,9 @@ class EnumMemberCreatedEvent(Event):
         self.bmask = bmask
 
     def __call__(self):
-        enum = ida_enum.get_enum(self.ename)
+        enum = ida_enum.get_enum((self.ename))
         ida_enum.add_enum_member(
-            enum, self.name, self.value, self.bmask
+            enum, (self.name), self.value, self.bmask
         )
 
 
@@ -520,7 +526,7 @@ class EnumMemberDeletedEvent(Event):
         self.bmask = bmask
 
     def __call__(self):
-        enum = ida_enum.get_enum(self.ename)
+        enum = ida_enum.get_enum((self.ename))
         ida_enum.del_enum_member(enum, self.value, self.serial, self.bmask)
 
 
@@ -535,7 +541,7 @@ class StrucCreatedEvent(Event):
 
     def __call__(self):
         ida_struct.add_struc(
-            ida_idaapi.BADADDR, self.name, self.is_union
+            self.struc, self.name, self.is_union
         )
 
 
@@ -577,7 +583,7 @@ class StrucCmtChangedEvent(Event):
     def __call__(self):
         struc = ida_struct.get_struc_id(self.sname)
         sptr = ida_struct.get_struc(struc)
-        cmt = self.cmt if self.cmt else ""
+        cmt = (self.cmt if self.cmt else "")
         if self.smname:
             mptr = ida_struct.get_member_by_name(
                 sptr, self.smname
@@ -747,8 +753,8 @@ class SegmAddedEvent(Event):
         seg.flags = self.flags
         ida_segment.add_segm_ex(
             seg,
-            self.name,
-            self.class_,
+            (self.name),
+            (self.class_),
             ida_segment.ADDSEG_QUIET | ida_segment.ADDSEG_NOSREG,
         )
 
@@ -804,7 +810,7 @@ class SegmNameChangedEvent(Event):
 
     def __call__(self):
         seg = ida_segment.getseg(self.ea)
-        ida_segment.set_segm_name(seg, self.name)
+        ida_segment.set_segm_name(seg, (self.name))
 
 
 class SegmClassChangedEvent(Event):
@@ -817,7 +823,7 @@ class SegmClassChangedEvent(Event):
 
     def __call__(self):
         seg = ida_segment.getseg(self.ea)
-        ida_segment.set_segm_class(seg, self.sclass)
+        ida_segment.set_segm_class(seg, (self.sclass))
 
 
 class SegmAttrsUpdatedEvent(Event):
@@ -967,9 +973,9 @@ class MakeUnknown(Event):
 #            func,
 #            func.start_ea,
 #            func.end_ea,
-#            self.canonical_name,
-#            self.new_name,
-#            self.cmt,
+#            (self.canonical_name),
+#            (self.new_name),
+#            (self.cmt),
 #        )
 
 
@@ -1003,6 +1009,7 @@ class UserLabelsEvent(HexRaysEvent):
     def __call__(self):
         labels = ida_hexrays.user_labels_new()
         for org_label, name in self.labels:
+            name = (name)
             ida_hexrays.user_labels_insert(labels, org_label, name)
         ida_hexrays.save_user_labels(self.ea, labels)
         HexRaysEvent.refresh_pseudocode_view(self.ea)
@@ -1022,7 +1029,7 @@ class UserCmtsEvent(HexRaysEvent):
             tl = ida_hexrays.treeloc_t()
             tl.ea = tl_ea
             tl.itp = tl_itp
-            cmts.insert(tl, ida_hexrays.citem_cmt_t(cmt))
+            cmts.insert(tl, ida_hexrays.citem_cmt_t((cmt)))
         ida_hexrays.save_user_cmts(self.ea, cmts)
         HexRaysEvent.refresh_pseudocode_view(self.ea)
 
@@ -1094,9 +1101,9 @@ class UserLvarSettingsEvent(HexRaysEvent):
     def _get_lvar_saved_info(dct):
         lv = ida_hexrays.lvar_saved_info_t()
         lv.ll = UserLvarSettingsEvent._get_lvar_locator(dct["ll"])
-        lv.name = dct["name"]
+        lv.name = (dct["name"])
         lv.type = UserLvarSettingsEvent._get_tinfo(dct["type"])
-        lv.cmt = dct["cmt"]
+        lv.cmt = (dct["cmt"])
         lv.flags = dct["flags"]
         return lv
 
@@ -1155,11 +1162,11 @@ class UserNumformsEvent(HexRaysEvent):
             ol = ida_hexrays.operand_locator_t(_ol["ea"], _ol["opnum"])
             nf = ida_hexrays.number_format_t()
             nf.flags = _nf["flags"]
-            nf.opnum = _nf["opnum"]
-            nf.props = _nf["props"]
+            nf.opnum = (_nf["opnum"])
+            nf.props = (_nf["props"])
             nf.serial = _nf["serial"]
-            nf.org_nbytes = _nf["org_nbytes"]
-            nf.type_name = _nf["type_name"]
+            nf.org_nbytes = (_nf["org_nbytes"])
+            nf.type_name = (_nf["type_name"])
             ida_hexrays.user_numforms_insert(numforms, ol, nf)
         ida_hexrays.save_user_numforms(self.ea, numforms)
         HexRaysEvent.refresh_pseudocode_view(self.ea)
